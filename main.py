@@ -1,52 +1,47 @@
 import pandas as pd
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
 
-# Excel dosyasını oku
-excel_file = 'sonuc.xlsx'  # Dosya adını ve yolunu uygun şekilde güncelle
-df = pd.read_excel(excel_file)
+def calculateDailyAverage(filePath):
+    # Load the existing dataset from Excel
+    df = pd.read_excel(filePath)
 
-# Veri setini incele
-print(df.head())
+    # Convert dates to date format
+    df['transactionDate'] = pd.to_datetime(df['transactionDate'], format='%d.%m.%Y').dt.date
+    df['dateOfBirth'] = pd.to_datetime(df['dateOfBirth'], format='%d.%m.%Y').dt.date
 
-# Kullanacağımız özellikler (features)
-features = ['transactionCount', 'dailyAverageTransaction']
+    # Calculate daily average transaction count per user and card
+    daily_average = df.groupby(['userId', 'cardId'])['transactionCount'].mean().reset_index()
+    daily_average.rename(columns={'transactionCount': 'dailyAverageTransaction'}, inplace=True)
 
-# Veri setinden ilgili özellikleri seçelim
-X = df[features]
+    # Merge daily average back into the original dataframe
+    df = pd.merge(df, daily_average, on=['userId', 'cardId'], how='left')
 
-# Veri normalizasyonu (standardizasyon)
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+    # Write the updated dataframe back to the same Excel file
+    df.to_excel(filePath, index=False, engine='openpyxl')
 
-# Isolation Forest modelini oluşturalım
-clf = IsolationForest(contamination=0.1, random_state=42)  # contamination oranı ayarlanabilir
+def calculateTransaction(inputFilePath, outputFilePath):
+    # Load example dataset
+    df = pd.read_excel(inputFilePath)
 
-# Modeli eğitelim
-clf.fit(X_scaled)
+    # Convert dates to date format
+    df['transactionDate'] = pd.to_datetime(df['transactionDate'], format='%d.%m.%Y').dt.date
+    df['dateOfBirth'] = pd.to_datetime(df['dateOfBirth'], format='%d.%m.%Y').dt.date
 
-# Anomali skorlarını hesaplayalım
-anomaly_scores = clf.decision_function(X_scaled)
+    # Calculate transaction count for each date
+    summary_df = df.groupby(['userId', 'cardId', 'gender', 'city', 'dateOfBirth', 'transactionDate']).size().reset_index(name='transactionCount')
 
-# Anomali skorlarını veri çerçevesine ekleyelim
-df['anomaly_score'] = anomaly_scores
+    # Write data to Excel file
+    summary_df.to_excel(outputFilePath, index=False, engine='openpyxl')
 
-# Anormal işlemleri belirleyelim (anomaly_score < 0)
-anomalies = df[df['anomaly_score'] < 0]
+def main():
+    # Define file paths
+    input_file = 'kartIslemDataSet.xlsx'
+    intermediate_file = 'sonuc.xlsx'
 
-# Anormal işlemleri gösterelim
-print("Anormal İşlemler:")
-print(anomalies)
+    # Process the initial Excel data
+    calculateTransaction(input_file, intermediate_file)
 
-# Eğer görselleştirme isterseniz:
-import matplotlib.pyplot as plt
+    # Calculate daily average and update the same Excel file
+    calculateDailyAverage(intermediate_file)
 
-plt.figure(figsize=(10, 6))
-plt.scatter(df['transactionCount'], df['dailyAverageTransaction'], c=df['anomaly_score'], cmap='viridis', marker='o', edgecolors='k')
-plt.xlabel('Transaction Count')
-plt.ylabel('Daily Average Transaction')
-plt.title('Isolation Forest Anomaly Detection')
-plt.colorbar(label='Anomaly Score')
-plt.scatter(anomalies['transactionCount'], anomalies['dailyAverageTransaction'], color='red', marker='x', label='Anomaly')
-plt.legend()
-plt.show()
+if __name__ == "__main__":
+    main()
