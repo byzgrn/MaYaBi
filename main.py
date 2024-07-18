@@ -5,8 +5,8 @@ def calculateDailyAverage(filePath):
     df = pd.read_excel(filePath)
 
     # Convert dates to date format
-    df['transactionDate'] = pd.to_datetime(df['transactionDate'], format='%d.%m.%Y').dt.date
-    df['dateOfBirth'] = pd.to_datetime(df['dateOfBirth'], format='%d.%m.%Y').dt.date
+    df['transactionDate'] = pd.to_datetime(df['transactionDate'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
+    df['dateOfBirth'] = pd.to_datetime(df['dateOfBirth'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
 
     # Calculate daily average transaction count per user and card
     daily_average = df.groupby(['userId', 'cardId'])['transactionCount'].mean().reset_index()
@@ -23,8 +23,8 @@ def calculateTransaction(inputFilePath, outputFilePath):
     df = pd.read_excel(inputFilePath)
 
     # Convert dates to date format
-    df['transactionDate'] = pd.to_datetime(df['transactionDate'], format='%d.%m.%Y').dt.date
-    df['dateOfBirth'] = pd.to_datetime(df['dateOfBirth'], format='%d.%m.%Y').dt.date
+    df['transactionDate'] = pd.to_datetime(df['transactionDate'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
+    df['dateOfBirth'] = pd.to_datetime(df['dateOfBirth'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
 
     # Calculate transaction count for each date
     summary_df = df.groupby(['userId', 'cardId', 'gender', 'city', 'dateOfBirth', 'transactionDate']).size().reset_index(name='transactionCount')
@@ -34,8 +34,8 @@ def calculateTransaction(inputFilePath, outputFilePath):
 
 def main():
     # Define file paths
-    input_file = 'kartIslemDataSet.xlsx'
-    intermediate_file = 'sonuc.xlsx'
+    input_file = 'DataSets/emre.xlsx'
+    intermediate_file = 'DataSets/test.xlsx'
 
     # Process the initial Excel data
     calculateTransaction(input_file, intermediate_file)

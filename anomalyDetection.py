@@ -1,52 +1,43 @@
 import pandas as pd
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
-
-# Excel dosyasını oku
-excel_file = 'sonuc.xlsx'  # Dosya adını ve yolunu uygun şekilde güncelle
-df = pd.read_excel(excel_file)
-
-# Veri setini incele
-print(df.head())
-
-# Kullanacağımız özellikler (features)
-features = ['transactionCount', 'dailyAverageTransaction']
-
-# Veri setinden ilgili özellikleri seçelim
-X = df[features]
-
-# Veri normalizasyonu (standardizasyon)
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-# Isolation Forest modelini oluşturalım
-clf = IsolationForest(contamination=0.1, random_state=42)  # contamination oranı ayarlanabilir
-
-# Modeli eğitelim
-clf.fit(X_scaled)
-
-# Anomali skorlarını hesaplayalım
-anomaly_scores = clf.decision_function(X_scaled)
-
-# Anomali skorlarını veri çerçevesine ekleyelim
-df['anomaly_score'] = anomaly_scores
-
-# Anormal işlemleri belirleyelim (anomaly_score < 0)
-anomalies = df[df['anomaly_score'] < 0]
-
-# Anormal işlemleri gösterelim
-print("Anormal İşlemler:")
-print(anomalies)
-
-# Eğer görselleştirme isterseniz:
 import matplotlib.pyplot as plt
+from sklearn.ensemble import IsolationForest
 
+# Veri setini yükleme
+data = pd.read_excel('DataSets/train.xlsx')
+data['transactionDate'] = pd.to_datetime(data['transactionDate'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
+data['dateOfBirth'] = pd.to_datetime(data['dateOfBirth'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
+# Gerekli özelliklerin seçimi
+X = data[['transactionCount', 'dailyAverageTransaction']]
+
+# Isolation Forest modeli oluşturma
+model = IsolationForest(contamination=0.01)  # Anormal olarak kabul edilecek veri yüzdesi (örneğin %5)
+
+# Modeli eğitme
+model.fit(X)
+
+# Anomali skorlarını hesaplama
+anomaly_scores = model.decision_function(X)
+
+# Veri setine anomali skorlarını ekleyerek işaretleyelim
+data['anomaly_score'] = anomaly_scores
+
+# Eşik değeri belirleme (örneğin en yüksek %5 anomali skoru)
+#threshold = data['anomaly_score'].quantile(0.99)
+threshold=0
+
+# Grafik oluşturma
 plt.figure(figsize=(10, 6))
-plt.scatter(df['transactionCount'], df['dailyAverageTransaction'], c=df['anomaly_score'], cmap='viridis', marker='o', edgecolors='k')
-plt.xlabel('Transaction Count')
-plt.ylabel('Daily Average Transaction')
-plt.title('Isolation Forest Anomaly Detection')
-plt.colorbar(label='Anomaly Score')
-plt.scatter(anomalies['transactionCount'], anomalies['dailyAverageTransaction'], color='red', marker='x', label='Anomaly')
+plt.scatter(data.index, data['anomaly_score'], c=data['anomaly_score'], cmap='coolwarm', marker='o')
+plt.axhline(y=threshold, color='r', linestyle='--', label=f'Anomali Eşik Değeri ({threshold:.2f})')
+plt.xlabel('Veri Noktası Index')
+plt.ylabel('Anomali Skoru')
+plt.title('Isolation Forest Anomali Tespiti')
 plt.legend()
+plt.colorbar(label='Anomali Skoru')
+plt.tight_layout()
+
+# Anormal verileri işaretleyerek Excel dosyasına kaydetme
+anomaly_data = data[data['anomaly_score'] < threshold]  # Anormal olarak kabul edilen veriler
+anomaly_data.to_excel('DataSets/anomalyData.xlsx', index=False)
+
 plt.show()
