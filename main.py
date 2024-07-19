@@ -1,47 +1,44 @@
 import pandas as pd
 
 def calculateDailyAverage(filePath):
-    # Load the existing dataset from Excel
+    # Excel'i okuma
     df = pd.read_excel(filePath)
 
-    # Convert dates to date format
+    # Date format
     df['transactionDate'] = pd.to_datetime(df['transactionDate'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
     df['dateOfBirth'] = pd.to_datetime(df['dateOfBirth'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
 
-    # Calculate daily average transaction count per user and card
+    # Her user ve kartı için günlük ortalama işlem sayısını hesaplama
     daily_average = df.groupby(['userId', 'cardId'])['transactionCount'].mean().reset_index()
     daily_average.rename(columns={'transactionCount': 'dailyAverageTransaction'}, inplace=True)
 
-    # Merge daily average back into the original dataframe
+    # Günlük ortalama işlem miktarını dataframe ile birleştirme
     df = pd.merge(df, daily_average, on=['userId', 'cardId'], how='left')
 
-    # Write the updated dataframe back to the same Excel file
+    # Aynı excel'e günlük ortalama işlem miktarını yazıyoruz
     df.to_excel(filePath, index=False, engine='openpyxl')
 
 def calculateTransaction(inputFilePath, outputFilePath):
-    # Load example dataset
+    # Excel okuma
     df = pd.read_excel(inputFilePath)
 
-    # Convert dates to date format
+    # Date format
     df['transactionDate'] = pd.to_datetime(df['transactionDate'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
     df['dateOfBirth'] = pd.to_datetime(df['dateOfBirth'], format='%d.%m.%Y').dt.strftime('%d.%m.%Y')
 
-    # Calculate transaction count for each date
+    # Her bir tarihte yapılan işlem miktarını hesaplama
     summary_df = df.groupby(['userId', 'cardId', 'gender', 'city', 'dateOfBirth', 'transactionDate']).size().reset_index(name='transactionCount')
 
-    # Write data to Excel file
+    # Elde edilen sonucu excel'e yazma
     summary_df.to_excel(outputFilePath, index=False, engine='openpyxl')
 
 def main():
-    # Define file paths
-    input_file = 'DataSets/emre.xlsx'
-    intermediate_file = 'DataSets/test.xlsx'
+    inputFile = 'DataSets/emre.xlsx'
+    outputFile = 'DataSets/test.xlsx'
 
-    # Process the initial Excel data
-    calculateTransaction(input_file, intermediate_file)
-
-    # Calculate daily average and update the same Excel file
-    calculateDailyAverage(intermediate_file)
+    # Veriyi model için kullanılıcak duruma getirme
+    calculateTransaction(inputFile, outputFile)
+    calculateDailyAverage(outputFile)
 
 if __name__ == "__main__":
     main()
